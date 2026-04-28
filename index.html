@@ -3,52 +3,182 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Email Checker PRO</title>
+<title>Email Checker ULTRA</title>
+
 <style>
-body{background:#0d0d0d;color:#fff;font-family:Arial;padding:20px}
-textarea{width:100%;height:220px;background:#111;color:#0f0;border:1px solid #333;padding:10px}
-button{padding:12px 18px;background:#00aa44;color:#fff;border:0;cursor:pointer;margin-top:10px}
-#out{white-space:pre-wrap;background:#111;padding:15px;margin-top:15px}
+body{
+font-family:Arial;
+background:#f4f8ff;
+margin:0;
+padding:30px;
+color:#111;
+}
+
+.box{
+max-width:900px;
+margin:auto;
+background:white;
+padding:25px;
+border-radius:16px;
+box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+
+h1{
+margin-top:0;
+color:#1565ff;
+}
+
+textarea{
+width:100%;
+height:220px;
+padding:15px;
+border-radius:12px;
+border:1px solid #ddd;
+font-size:15px;
+}
+
+button{
+padding:12px 18px;
+border:0;
+background:#1565ff;
+color:white;
+border-radius:10px;
+cursor:pointer;
+margin-top:10px;
+margin-right:10px;
+}
+
+.stats{
+display:flex;
+gap:15px;
+margin:20px 0;
+flex-wrap:wrap;
+}
+
+.card{
+flex:1;
+min-width:120px;
+background:#eef4ff;
+padding:15px;
+border-radius:12px;
+text-align:center;
+}
+
+#progress{
+height:12px;
+background:#ddd;
+border-radius:30px;
+overflow:hidden;
+margin:15px 0;
+}
+
+#bar{
+height:100%;
+width:0%;
+background:#1565ff;
+}
+
+#results{
+background:#f8faff;
+padding:15px;
+border-radius:12px;
+white-space:pre-wrap;
+max-height:400px;
+overflow:auto;
+}
 </style>
 </head>
+
 <body>
 
-<h1>Email Checker PRO</h1>
+<div class="box">
+
+<h1>Email Checker ULTRA</h1>
 
 <textarea id="emails" placeholder="email1@gmail.com&#10;email2@yahoo.com"></textarea>
-<br>
-<button onclick="runCheck()">CHECK</button>
 
-<div id="out"></div>
+<br>
+<button onclick="runCheck()">Start Check</button>
+<button onclick="download('valid')">Export Valid</button>
+<button onclick="download('invalid')">Export Invalid</button>
+
+<div class="stats">
+<div class="card">Checked<br><b id="checked">0</b></div>
+<div class="card">Valid<br><b id="valid">0</b></div>
+<div class="card">Invalid<br><b id="invalid">0</b></div>
+<div class="card">Risky<br><b id="risky">0</b></div>
+</div>
+
+<div id="progress"><div id="bar"></div></div>
+
+<div id="results"></div>
+
+</div>
 
 <script>
+let validList=[];
+let invalidList=[];
+let riskyList=[];
+
 async function runCheck(){
- let emails=document.getElementById("emails").value.split("\n").map(x=>x.trim()).filter(Boolean);
 
- let out="";
- let valid=0,invalid=0,risky=0;
+validList=[]; invalidList=[]; riskyList=[];
 
- for(let email of emails){
-   out += "Checking "+email+"...\n";
-   document.getElementById("out").textContent=out;
+let emails=document.getElementById("emails").value
+.split("\n")
+.map(x=>x.trim())
+.filter(Boolean);
 
-   try{
-      let r=await fetch("/api/check?email="+encodeURIComponent(email));
-      let j=await r.json();
+let total=emails.length;
+let done=0;
 
-      if(j.status=="valid") valid++;
-      else if(j.status=="risky") risky++;
-      else invalid++;
+document.getElementById("results").textContent="";
 
-      out += email+" => "+j.status+" ("+j.reason+")\n\n";
+for(let email of emails){
 
-   }catch(e){
-      out += email+" => error\n\n";
-   }
+try{
+ let r=await fetch("/api/check?email="+encodeURIComponent(email));
+ let j=await r.json();
 
-   document.getElementById("out").textContent =
-   "VALID: "+valid+" | INVALID: "+invalid+" | RISKY: "+risky+"\n\n"+out;
- }
+ if(j.status=="valid") validList.push(email);
+ else if(j.status=="risky") riskyList.push(email);
+ else invalidList.push(email);
+
+ document.getElementById("results").textContent +=
+ email+" => "+j.status+" ("+j.reason+")\n";
+
+}catch(e){
+ invalidList.push(email);
+}
+
+done++;
+
+document.getElementById("checked").textContent=done;
+document.getElementById("valid").textContent=validList.length;
+document.getElementById("invalid").textContent=invalidList.length;
+document.getElementById("risky").textContent=riskyList.length;
+
+document.getElementById("bar").style.width =
+((done/total)*100)+"%";
+
+}
+
+}
+
+function download(type){
+
+let data="";
+
+if(type=="valid") data=validList.join("\n");
+if(type=="invalid") data=invalidList.join("\n");
+if(type=="risky") data=riskyList.join("\n");
+
+let blob=new Blob([data],{type:"text/plain"});
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download=type+".txt";
+a.click();
+
 }
 </script>
 
