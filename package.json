@@ -1,4 +1,5 @@
 {
-  "name": "checker",
-  "version": "1.0.0"
+  "name":"checker-pro",
+  "version":"1.0.0",
+  "type":"module"
 }
