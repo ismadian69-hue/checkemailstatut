@@ -1,36 +1,56 @@
 import dns from "dns/promises";
 
-export default async function handler(req, res) {
-  const email = req.query.email || "";
+const disposable = [
+"tempmail.com","10minutemail.com","guerrillamail.com","mailinator.com"
+];
 
-  if (!email.includes("@")) {
-    return res.status(200).json({
-      status: "invalid",
-      reason: "bad format"
-    });
-  }
+export default async function handler(req,res){
 
-  const domain = email.split("@")[1];
+const email=(req.query.email||"").toLowerCase().trim();
 
-  try {
-    const mx = await dns.resolveMx(domain);
+if(!email.includes("@") || email.split("@").length!==2){
+ return res.status(200).json({
+   status:"invalid",
+   reason:"bad format"
+ });
+}
 
-    if (mx && mx.length > 0) {
-      return res.status(200).json({
-        status: "valid",
-        reason: "mx found"
-      });
-    } else {
-      return res.status(200).json({
-        status: "invalid",
-        reason: "no mx"
-      });
-    }
+const [name,domain]=email.split("@");
 
-  } catch (e) {
-    return res.status(200).json({
-      status: "invalid",
-      reason: "domain error"
-    });
-  }
+if(disposable.includes(domain)){
+ return res.status(200).json({
+   status:"risky",
+   reason:"disposable domain"
+ });
+}
+
+if(["info","admin","support","sales"].includes(name)){
+ return res.status(200).json({
+   status:"risky",
+   reason:"role email"
+ });
+}
+
+try{
+ const mx=await dns.resolveMx(domain);
+
+ if(mx.length>0){
+   return res.status(200).json({
+     status:"valid",
+     reason:"mx found"
+   });
+ }
+
+ return res.status(200).json({
+   status:"invalid",
+   reason:"no mx"
+ });
+
+}catch(e){
+ return res.status(200).json({
+   status:"invalid",
+   reason:"domain failed"
+ });
+}
+
 }
